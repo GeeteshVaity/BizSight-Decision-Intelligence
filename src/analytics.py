@@ -122,6 +122,15 @@ class BusinessAnalytics:
         first_value = valid_values.iloc[0]
         last_value = valid_values.iloc[-1]
         
+        # Handle zero first_value to avoid division by zero
+        if first_value == 0:
+            if last_value > 0:
+                return 'increasing'
+            elif last_value < 0:
+                return 'decreasing'
+            else:
+                return 'stable'
+        
         # Calculate percentage change
         pct_change = ((last_value - first_value) / first_value) * 100
         

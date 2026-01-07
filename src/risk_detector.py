@@ -163,6 +163,10 @@ class RiskDetector:
         """
         avg_revenue = self.data['revenue'].mean()
         
+        # Handle zero average revenue
+        if avg_revenue == 0:
+            return
+        
         # Find significant drops
         revenue_drop = ((avg_revenue - self.data['revenue']) / avg_revenue) * 100
         significant_drops = revenue_drop > self.thresholds['revenue_drop']
@@ -182,6 +186,10 @@ class RiskDetector:
         Detect unusual spikes in cost
         """
         avg_cost = self.data['cost'].mean()
+        
+        # Handle zero average cost
+        if avg_cost == 0:
+            return
         
         # Find significant spikes
         cost_spike = ((self.data['cost'] - avg_cost) / avg_cost) * 100
