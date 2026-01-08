@@ -15,8 +15,9 @@ def load_data(file_path):
         raise Exception(f"Missing column: {missing}")
     
     #Handle missing values
-    df["revenue"].fillna(0, inplace = True)
-    df["cost"].fillna(0,inplace = True)
+    df["revenue"] = df["revenue"].fillna(0)
+    df["cost"] = df["cost"].fillna(0)
+
 
     #Convert date
     df["date"] = pd.to_datetime(df["date"])
