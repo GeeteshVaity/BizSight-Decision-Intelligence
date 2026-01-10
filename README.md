@@ -185,7 +185,6 @@ python main.py
   * Product
   * Revenue
   * Cost
-  * Quantity
 
 ### Step 2: Data Processing
 
