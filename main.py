@@ -1,4 +1,4 @@
-from analysis.data_loader import load_data
+from core.data_loader import load_data
 
 def main():
     print("=== BizSight Decision Intelligence System ===")
