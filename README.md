@@ -83,7 +83,7 @@ BizSight/
 │   ├── analyzer.py             # Business calculations
 │   └── trends.py               # Time-based analysis
 │
-├── intelligence/
+├── intellligence/
 │   ├── risk_detector.py        # Rule-based risk detection
 │   └── insight_generator.py    # Text insights (logic-based)
 │
