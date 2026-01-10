@@ -8,7 +8,6 @@ The system is designed to be:
 * Modular
 * Practical
 * Examiner-friendly
-
 > BizSight focuses on **decision support**, not prediction.
 > All calculations are done using Python logic, while AI is used only for explanation and reporting.
 
