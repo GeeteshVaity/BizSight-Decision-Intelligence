@@ -11,7 +11,7 @@ def load_data(file_path) -> pd.DataFrame:
     
 
     
-    #Handle missing values
+    #Handle missing values by replacing empty values with 0
     df["revenue"] = df["revenue"].fillna(0)
     df["cost"] = df["cost"].fillna(0)
 
