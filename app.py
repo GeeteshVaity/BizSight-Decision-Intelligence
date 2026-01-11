@@ -2,10 +2,19 @@ import sys
 import os
 import streamlit as st
 
-# --------------------------------------------------
+from analysis.analyzer import (
+    total_revenue,
+    total_cost,
+    total_profit,
+    profit_margin
+)
+
+
+
 # Add project root to Python path
-# --------------------------------------------------
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from core.data_loader import load_data
 from core.data_validator import validate_dataframe
@@ -102,6 +111,40 @@ def main():
                 df = validate_dataframe(df)
 
             st.success("Data loaded and validated successfully")
+
+            # --------------------------------------------------
+            # Business Metrics
+            # --------------------------------------------------
+            st.markdown("### 📈 Business Performance Summary")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric(
+                    label="Total Revenue",
+                    value=f"₹ {total_revenue(df):,.0f}"
+                )
+            
+            with col2:
+                st.metric(
+                    label="Total Cost",
+                    value=f"₹ {total_cost(df):,.0f}"
+                )
+            
+            with col3:
+                profit = total_profit(df)
+                st.metric(
+                    label="Total Profit",
+                    value=f"₹ {profit:,.0f}",
+                    delta="Profit" if profit >= 0 else "Loss"
+                )
+            
+            with col4:
+                st.metric(
+                    label="Profit Margin",
+                    value=f"{profit_margin(df):.2f} %"
+                )
+            
 
             st.markdown("### 🔎 Data Preview")
             st.dataframe(df.head(), use_container_width=True)

@@ -24,10 +24,10 @@ def total_revenue(df):
     if df is None or df.empty:
         return 0.0
     
-    if 'Revenue' not in df.columns:
+    if 'revenue' not in df.columns:
         return 0.0
     
-    return float(df['Revenue'].sum())
+    return float(df['revenue'].sum())
 
 
 def total_cost(df):
@@ -43,10 +43,10 @@ def total_cost(df):
     if df is None or df.empty:
         return 0.0
     
-    if 'Cost' not in df.columns:
+    if 'cost' not in df.columns:
         return 0.0
     
-    return float(df['Cost'].sum())
+    return float(df['cost'].sum())
 
 
 def total_profit(df):
@@ -115,22 +115,22 @@ def product_wise_summary(df):
     if df is None or df.empty:
         return {}
     
-    required_cols = ['Product', 'Revenue', 'Cost']
+    required_cols = ['product', 'revenue', 'cost']
     if not all(col in df.columns for col in required_cols):
         return {}
     
     summary = {}
     
     # Group by product and calculate metrics
-    grouped = df.groupby('Product').agg({
-        'Revenue': 'sum',
-        'Cost': 'sum'
+    grouped = df.groupby('product').agg({
+        'revenue': 'sum',
+        'cost': 'sum'
     }).reset_index()
     
     for _, row in grouped.iterrows():
-        product = row['Product']
-        revenue = float(row['Revenue'])
-        cost = float(row['Cost'])
+        product = row['product']
+        revenue = float(row['revenue'])
+        cost = float(row['cost'])
         profit = revenue - cost
         
         # Calculate margin for this product
