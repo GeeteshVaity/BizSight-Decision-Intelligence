@@ -14,6 +14,6 @@ def validate_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     # 3. Remove invalid rows
     df = df.dropna()
-    df = df[(df["revenue"] >= 0) & (df["cost"] >= 0)]
+    df = df[(df["revenue"] >= 0) & (df["cost"] >= 0)] #Keep only rows where revenue ≥ 0 AND cost ≥ 0.
 
     return df
