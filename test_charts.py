@@ -7,13 +7,13 @@ from visualization.charts import (
 
 # Dummy data
 df = pd.DataFrame({
-    "Date": ["2024-01-01", "2024-02-01", "2024-03-01"],
-    "Product": ["A", "B", "A"],
-    "Revenue": [1000, 1500, 1200],
-    "Cost": [700, 900, 800]
+    "date": ["2024-01-01", "2024-02-01", "2024-03-01"],
+    "product": ["A", "B", "A"],
+    "revenue": [1000, 1500, 1200],
+    "cost": [700, 900, 800]
 })
 
-df["Profit"] = df["Revenue"] - df["Cost"]
+df["profit"] = df["revenue"] - df["cost"]
 
 # Show charts
 revenue_trend_chart(df).show()
