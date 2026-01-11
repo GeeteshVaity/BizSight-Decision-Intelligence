@@ -26,11 +26,12 @@ def revenue_trend_chart(df: pd.DataFrame):
     grouped.index = grouped.index.to_timestamp()
 
     fig = plt.figure()
-    plt.plot(grouped.index, grouped.values)
-    plt.xlabel("Month")
-    plt.ylabel("Revenue")
-    plt.title("Monthly Revenue Trend")
-    plt.tight_layout()
+    ax = fig.add_subplot(111)
+    ax.plot(grouped.index, grouped.values)
+    ax.set_xlabel("Month")
+    ax.set_ylabel("Revenue")
+    ax.set_title("Monthly Revenue Trend")
+    fig.tight_layout()
     return fig
 
 
@@ -55,11 +56,12 @@ def profit_by_product_chart(df: pd.DataFrame):
     grouped = df.groupby("product")["profit"].sum()
 
     fig = plt.figure()
-    grouped.plot(kind="bar")
-    plt.xlabel("Product")
-    plt.ylabel("Profit")
-    plt.title("Profit by Product")
-    plt.tight_layout()
+    ax = fig.add_subplot(111)
+    grouped.plot(kind="bar", ax=ax)
+    ax.set_xlabel("Product")
+    ax.set_ylabel("Profit")
+    ax.set_title("Profit by Product")
+    fig.tight_layout()
     return fig
 
 
@@ -84,7 +86,8 @@ def revenue_contribution_pie(df: pd.DataFrame):
     grouped = df.groupby("product")["revenue"].sum()
 
     fig = plt.figure()
-    plt.pie(grouped.values, labels=grouped.index, autopct="%1.1f%%")
-    plt.title("Revenue Contribution by Product")
-    plt.tight_layout()
+    ax = fig.add_subplot(111)
+    ax.pie(grouped.values, labels=grouped.index, autopct="%1.1f%%")
+    ax.set_title("Revenue Contribution by Product")
+    fig.tight_layout()
     return fig
