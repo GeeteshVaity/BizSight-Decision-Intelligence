@@ -1,17 +1,18 @@
-def compare_profit(original_df, simulated_df):
+import pandas as pd
+
+
+def compare_profit(original_df: pd.DataFrame, simulated_df: pd.DataFrame):
     """
     Compare total profit between an original dataset and a simulated dataset.
 
     Parameters
     ----------
-    original_df :
-        A tabular data structure (e.g., pandas.DataFrame) representing the
-        original data. It must contain a numeric "profit" column whose values
-        can be summed.
-    simulated_df :
-        A tabular data structure (e.g., pandas.DataFrame) representing the
-        simulated data. It must contain a numeric "profit" column whose values
-        can be summed.
+    original_df : pandas.DataFrame
+        A tabular data structure representing the original data.
+        It must contain a numeric "profit" column whose values can be summed.
+    simulated_df : pandas.DataFrame
+        A tabular data structure representing the simulated data.
+        It must contain a numeric "profit" column whose values can be summed.
 
     Returns
     -------
