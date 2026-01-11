@@ -14,7 +14,7 @@ def revenue_trend_chart(df: pd.DataFrame):
     plt.ylabel("Revenue")
     plt.title("Monthly Revenue Trend")
     plt.tight_layout()
-    return plt
+    return plt.gcf()
 
 
 def profit_by_product_chart(df: pd.DataFrame):
@@ -26,7 +26,7 @@ def profit_by_product_chart(df: pd.DataFrame):
     plt.ylabel("Profit")
     plt.title("Profit by Product")
     plt.tight_layout()
-    return plt
+    return plt.gcf()
 
 
 def revenue_contribution_pie(df: pd.DataFrame):
@@ -36,4 +36,4 @@ def revenue_contribution_pie(df: pd.DataFrame):
     plt.pie(grouped.values, labels=grouped.index, autopct="%1.1f%%")
     plt.title("Revenue Contribution by Product")
     plt.tight_layout()
-    return plt
+    return plt.gcf()
