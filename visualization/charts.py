@@ -4,8 +4,8 @@ import pandas as pd
 
 def revenue_trend_chart(df: pd.DataFrame):
     df = df.copy()
-    df["Date"] = pd.to_datetime(df["Date"])
-    grouped = df.groupby(df["Date"].dt.to_period("M"))["Revenue"].sum()
+    df["date"] = pd.to_datetime(df["date"])
+    grouped = df.groupby(df["date"].dt.to_period("M"))["revenue"].sum()
     grouped.index = grouped.index.to_timestamp()
 
     plt.figure()
@@ -18,7 +18,7 @@ def revenue_trend_chart(df: pd.DataFrame):
 
 
 def profit_by_product_chart(df: pd.DataFrame):
-    grouped = df.groupby("Product")["Profit"].sum()
+    grouped = df.groupby("product")["Profit"].sum()
 
     plt.figure()
     grouped.plot(kind="bar")
@@ -30,7 +30,7 @@ def profit_by_product_chart(df: pd.DataFrame):
 
 
 def revenue_contribution_pie(df: pd.DataFrame):
-    grouped = df.groupby("Product")["Revenue"].sum()
+    grouped = df.groupby("product")["revenue"].sum()
 
     plt.figure()
     plt.pie(grouped.values, labels=grouped.index, autopct="%1.1f%%")

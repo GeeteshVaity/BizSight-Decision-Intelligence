@@ -9,6 +9,12 @@ from analysis.analyzer import (
     profit_margin
 )
 
+from visualization.charts import (
+    revenue_trend_chart,
+    profit_by_product_chart,
+    revenue_contribution_pie
+)
+
 
 
 # Add project root to Python path
@@ -84,14 +90,14 @@ def main():
     with col1:
         analyze_btn = st.button(
             "🔍 Analyze",
-            use_container_width=True,
+            width='stretch',
             disabled=uploaded_file is None
         )
 
     with col2:
         reset_btn = st.button(
             "♻ Reset",
-            use_container_width=True
+           width='stretch'
         )
 
     # --------------------------------------------------
@@ -109,6 +115,7 @@ def main():
             with st.spinner("Validating and processing data..."):
                 df = load_data(uploaded_file)
                 df = validate_dataframe(df)
+                df["Profit"] = df["revenue"] - df["cost"]
 
             st.success("Data loaded and validated successfully")
 
@@ -147,7 +154,7 @@ def main():
             
 
             st.markdown("### 🔎 Data Preview")
-            st.dataframe(df.head(), use_container_width=True)
+            st.dataframe(df.head(), width='stretch')
 
             st.caption(
                 "Showing first 5 rows of the uploaded dataset."
@@ -155,6 +162,42 @@ def main():
 
         except Exception as e:
             st.error(f"❌ {e}")
+
+    # --------------------------------------------------
+    # Visualization 
+    # --------------------------------------------------
+    if uploaded_file is not None and analyze_btn:
+        st.divider()
+        st.markdown("### 📊 Visual Insights")
+
+        # Create two columns
+        col1, col2 = st.columns(2)
+
+        with col1:
+            try:
+                plt_obj = revenue_trend_chart(df)
+                st.pyplot(plt_obj)
+                plt_obj.clf()
+            except Exception as e:
+                st.warning(f"Unable to render revenue trend chart: {e}")
+
+        with col2:
+            try:
+                plt_obj = profit_by_product_chart(df)
+                st.pyplot(plt_obj)
+                plt_obj.clf()
+            except Exception as e:
+                st.warning(f"Unable to render profit by product chart: {e}")
+
+        # Pie chart below (full width)
+        try:
+            plt_obj = revenue_contribution_pie(df)
+            st.pyplot(plt_obj)
+            plt_obj.clf()
+        except Exception as e:
+            st.warning(f"Unable to render revenue contribution pie: {e}")
+
+
 
     # --------------------------------------------------
     # Footer
