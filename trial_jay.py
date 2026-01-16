@@ -10,14 +10,14 @@ from simulation.comparator import compare_profit
 from reports.report_generator import generate_report
 
 # ---- Sample Data ----
-df = pd.DataFrame({
-    "Date": ["2024-01-01", "2024-02-01", "2024-03-01"],
-    "Product": ["A", "B", "A"],
-    "Revenue": [1000, 1500, 1200],
-    "Cost": [700, 900, 800]
-})
+#df = pd.DataFrame({
+#    "Date": ["2024-01-01", "2024-02-01", "2024-03-01"],
+#    "Product": ["A", "B", "A"],
+#    "Revenue": [1000, 1500, 1200],
+#    "Cost": [700, 900, 800]
+#})
 
-df["Profit"] = df["Revenue"] - df["Cost"]
+df["profit"] = df["revenue"] - df["cost"]
 
 # ---- Simulation ----
 simulated_df = simulate_changes(df, revenue_change_pct=10, cost_change_pct=-5)
@@ -29,9 +29,9 @@ print(comparison)
 
 # ---- Report ----
 metrics = {
-    "Total Revenue": simulated_df["Revenue"].sum(),
-    "Total Cost": simulated_df["Cost"].sum(),
-    "Total Profit": simulated_df["Profit"].sum()
+    "Total Revenue": simulated_df["revenue"].sum(),
+    "Total Cost": simulated_df["cost"].sum(),
+    "Total Profit": simulated_df["profit"].sum()
 }
 
 risks = ["High cost ratio detected"]
