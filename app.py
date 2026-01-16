@@ -15,6 +15,14 @@ from visualization.charts import (
     revenue_contribution_pie
 )
 
+from analysis.trends import (
+    revenue_trend,
+    profit_trend,
+    growth_rate,
+    detect_consecutive_losses
+)
+
+
 
 
 # Add project root to Python path
@@ -162,6 +170,51 @@ def main():
 
         except Exception as e:
             st.error(f"❌ {e}")
+
+        # --------------------------------------------------
+        # Trend Insights
+        # --------------------------------------------------
+        st.divider()
+        st.markdown("### 📉 Trend Insights")
+        
+        rev_trend = revenue_trend(df)
+        prof_trend = profit_trend(df)
+        overall_growth = growth_rate(df, "overall")
+        loss_info = detect_consecutive_losses(df)
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric(
+                label="Revenue Trend",
+                value=rev_trend["trend"].capitalize(),
+                delta=f"{rev_trend['change_percent']:.2f}%"
+            )
+        
+        with col2:
+            st.metric(
+                label="Profit Trend",
+                value=prof_trend["trend"].capitalize(),
+                delta=f"{prof_trend['change_percent']:.2f}%"
+            )
+        
+        with col3:
+            st.metric(
+                label="Overall Growth Rate",
+                value=f"{overall_growth:.2f}%"
+            )
+        
+        # --------------------------------------------------
+        # Risk Indicator
+        # --------------------------------------------------
+        if loss_info["has_consecutive_losses"]:
+            st.warning(
+                f"⚠️ Detected {loss_info['max_consecutive_days']} consecutive loss periods. "
+                "Business performance may be at risk."
+            )
+        else:
+            st.success("✅ No consecutive loss periods detected.")
+        
 
     # --------------------------------------------------
     # Visualization 

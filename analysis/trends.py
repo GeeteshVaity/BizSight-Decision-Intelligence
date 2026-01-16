@@ -30,20 +30,20 @@ def revenue_trend(df):
     if df is None or df.empty:
         return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
-    required_cols = ['Date', 'Revenue']
+    required_cols = ['date', 'revenue']
     if not all(col in df.columns for col in required_cols):
         return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
     # Sort by date and group by date
-    df_sorted = df.sort_values('Date')
-    daily_revenue = df_sorted.groupby('Date')['Revenue'].sum().reset_index()
+    df_sorted = df.sort_values('date')
+    daily_revenue = df_sorted.groupby('date')['revenue'].sum().reset_index()
     
     if len(daily_revenue) < 2:
         return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
     # Get first and last revenue values
-    first_revenue = daily_revenue['Revenue'].iloc[0]
-    last_revenue = daily_revenue['Revenue'].iloc[-1]
+    first_revenue = daily_revenue['revenue'].iloc[0]
+    last_revenue = daily_revenue['revenue'].iloc[-1]
     
     # Calculate change
     total_change = last_revenue - first_revenue
@@ -86,24 +86,24 @@ def profit_trend(df):
     if df is None or df.empty:
         return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
-    required_cols = ['Date', 'Revenue', 'Cost']
+    required_cols = ['date', 'revenue', 'cost']
     if not all(col in df.columns for col in required_cols):
         return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
     # Calculate profit per row
     df_copy = df.copy()
-    df_copy['Profit'] = df_copy['Revenue'] - df_copy['Cost']
+    df_copy['profit'] = df_copy['revenue'] - df_copy['cost']
     
     # Sort by date and group by date
-    df_sorted = df_copy.sort_values('Date')
-    daily_profit = df_sorted.groupby('Date')['Profit'].sum().reset_index()
+    df_sorted = df_copy.sort_values('date')
+    daily_profit = df_sorted.groupby('date')['profit'].sum().reset_index()
     
     if len(daily_profit) < 2:
         return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
     # Get first and last profit values
-    first_profit = daily_profit['Profit'].iloc[0]
-    last_profit = daily_profit['Profit'].iloc[-1]
+    first_profit = daily_profit['profit'].iloc[0]
+    last_profit = daily_profit['profit'].iloc[-1]
     
     # Calculate change
     total_change = last_profit - first_profit
@@ -142,21 +142,21 @@ def growth_rate(df, period='overall'):
     if df is None or df.empty:
         return 0.0
     
-    required_cols = ['Date', 'Revenue']
+    required_cols = ['date', 'revenue']
     if not all(col in df.columns for col in required_cols):
         return 0.0
     
     # Sort by date and group by date
-    df_sorted = df.sort_values('Date')
-    daily_revenue = df_sorted.groupby('Date')['Revenue'].sum().reset_index()
+    df_sorted = df.sort_values('date')
+    daily_revenue = df_sorted.groupby('date')['revenue'].sum().reset_index()
     
     if len(daily_revenue) < 2:
         return 0.0
     
     if period == 'overall':
         # Overall growth from first to last
-        first_revenue = daily_revenue['Revenue'].iloc[0]
-        last_revenue = daily_revenue['Revenue'].iloc[-1]
+        first_revenue = daily_revenue['revenue'].iloc[0]
+        last_revenue = daily_revenue['revenue'].iloc[-1]
         
         if first_revenue == 0:
             return 0.0
@@ -166,7 +166,7 @@ def growth_rate(df, period='overall'):
     
     elif period == 'average':
         # Average daily growth rate
-        revenues = daily_revenue['Revenue'].values
+        revenues = daily_revenue['revenue'].values
         growth_rates = []
         
         for i in range(1, len(revenues)):
@@ -204,7 +204,7 @@ def detect_consecutive_losses(df, threshold=3):
             'loss_periods': []
         }
     
-    required_cols = ['Date', 'Revenue', 'Cost']
+    required_cols = ['date', 'revenue', 'cost']
     if not all(col in df.columns for col in required_cols):
         return {
             'has_consecutive_losses': False,
@@ -214,11 +214,11 @@ def detect_consecutive_losses(df, threshold=3):
     
     # Calculate daily profit
     df_copy = df.copy()
-    df_copy['Profit'] = df_copy['Revenue'] - df_copy['Cost']
+    df_copy['profit'] = df_copy['revenue'] - df_copy['cost']
     
     # Sort by date and group by date
-    df_sorted = df_copy.sort_values('Date')
-    daily_profit = df_sorted.groupby('Date')['Profit'].sum().reset_index()
+    df_sorted = df_copy.sort_values('date')
+    daily_profit = df_sorted.groupby('date')['profit'].sum().reset_index()
     
     # Find consecutive losses
     consecutive = 0
@@ -227,9 +227,9 @@ def detect_consecutive_losses(df, threshold=3):
     current_streak_dates = []
     
     for idx, row in daily_profit.iterrows():
-        if row['Profit'] < 0:
+        if row['profit'] < 0:
             consecutive += 1
-            current_streak_dates.append(str(row['Date']))
+            current_streak_dates.append(str(row['date']))
             max_consecutive = max(max_consecutive, consecutive)
         else:
             if consecutive >= threshold:
@@ -264,26 +264,26 @@ def product_trend_ranking(df):
     if df is None or df.empty:
         return []
     
-    required_cols = ['Date', 'Product', 'Revenue']
+    required_cols = ['date', 'product', 'revenue']
     if not all(col in df.columns for col in required_cols):
         return []
     
-    products = df['Product'].unique()
+    products = df['product'].unique()
     rankings = []
     
     for product in products:
-        product_df = df[df['Product'] == product].copy()
+        product_df = df[df['product'] == product].copy()
         
         # Sort by date
-        product_df = product_df.sort_values('Date')
-        daily_revenue = product_df.groupby('Date')['Revenue'].sum().reset_index()
+        product_df = product_df.sort_values('date')
+        daily_revenue = product_df.groupby('date')['revenue'].sum().reset_index()
         
         if len(daily_revenue) < 2:
             continue
         
         # Calculate growth rate for this product
-        first_rev = daily_revenue['Revenue'].iloc[0]
-        last_rev = daily_revenue['Revenue'].iloc[-1]
+        first_rev = daily_revenue['revenue'].iloc[0]
+        last_rev = daily_revenue['revenue'].iloc[-1]
         
         if first_rev == 0:
             growth = 0.0
