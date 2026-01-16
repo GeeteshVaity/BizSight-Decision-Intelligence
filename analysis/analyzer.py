@@ -6,6 +6,8 @@ Author: Dhruv
 This module contains pure functions for business calculations.
 All functions take a DataFrame as input and return calculated values.
 No prints, only returns.
+
+Required DataFrame columns: date, product_name, quantity, selling_price, revenue, cost, profit
 """
 
 import pandas as pd
@@ -16,7 +18,7 @@ def total_revenue(df):
     Calculate total revenue from the business data.
     
     Args:
-        df (DataFrame): Business data with 'Revenue' column
+        df (DataFrame): Business data with 'revenue' column
         
     Returns:
         float: Total revenue across all records
@@ -35,7 +37,7 @@ def total_cost(df):
     Calculate total cost from the business data.
     
     Args:
-        df (DataFrame): Business data with 'Cost' column
+        df (DataFrame): Business data with 'cost' column
         
     Returns:
         float: Total cost across all records
@@ -51,10 +53,10 @@ def total_cost(df):
 
 def total_profit(df):
     """
-    Calculate total profit (Revenue - Cost).
+    Calculate total profit (revenue - cost).
     
     Args:
-        df (DataFrame): Business data with 'Revenue' and 'Cost' columns
+        df (DataFrame): Business data with 'profit' column (or 'revenue' and 'cost')
         
     Returns:
         float: Total profit (can be negative if loss)
@@ -62,6 +64,11 @@ def total_profit(df):
     if df is None or df.empty:
         return 0.0
     
+    # If profit column exists, use it directly
+    if 'profit' in df.columns:
+        return float(df['profit'].sum())
+    
+    # Otherwise calculate from revenue and cost
     revenue = total_revenue(df)
     cost = total_cost(df)
     
@@ -74,7 +81,7 @@ def profit_margin(df):
     Formula: (Total Profit / Total Revenue) * 100
     
     Args:
-        df (DataFrame): Business data with 'Revenue' and 'Cost' columns
+        df (DataFrame): Business data with 'revenue' and 'cost' columns
         
     Returns:
         float: Profit margin as percentage (0-100)
@@ -99,7 +106,7 @@ def product_wise_summary(df):
     Calculates revenue, cost, and profit for each product.
     
     Args:
-        df (DataFrame): Business data with 'Product', 'Revenue', 'Cost' columns
+        df (DataFrame): Business data with 'product_name', 'revenue', 'cost' columns
         
     Returns:
         dict: Dictionary with product names as keys and metrics as values
@@ -108,30 +115,47 @@ def product_wise_summary(df):
                       'revenue': 1000.0,
                       'cost': 600.0,
                       'profit': 400.0,
-                      'margin': 40.0
+                      'margin': 40.0,
+                      'quantity': 10
                   }
               }
     """
     if df is None or df.empty:
         return {}
     
-    required_cols = ['product', 'revenue', 'cost']
+    required_cols = ['product_name', 'revenue', 'cost']
     if not all(col in df.columns for col in required_cols):
         return {}
     
     summary = {}
     
-    # Group by product and calculate metrics
-    grouped = df.groupby('product').agg({
+    # Prepare aggregation dictionary
+    agg_dict = {
         'revenue': 'sum',
         'cost': 'sum'
-    }).reset_index()
+    }
+    
+    # Add quantity if it exists
+    if 'quantity' in df.columns:
+        agg_dict['quantity'] = 'sum'
+    
+    # Add profit if it exists
+    if 'profit' in df.columns:
+        agg_dict['profit'] = 'sum'
+    
+    # Group by product and calculate metrics
+    grouped = df.groupby('product_name').agg(agg_dict).reset_index()
     
     for _, row in grouped.iterrows():
-        product = row['product']
+        product = row['product_name']
         revenue = float(row['revenue'])
         cost = float(row['cost'])
-        profit = revenue - cost
+        
+        # Calculate or get profit
+        if 'profit' in row:
+            profit = float(row['profit'])
+        else:
+            profit = revenue - cost
         
         # Calculate margin for this product
         if revenue > 0:
@@ -139,12 +163,18 @@ def product_wise_summary(df):
         else:
             margin = 0.0
         
-        summary[product] = {
+        product_data = {
             'revenue': revenue,
             'cost': cost,
             'profit': profit,
             'margin': margin
         }
+        
+        # Add quantity if available
+        if 'quantity' in row:
+            product_data['quantity'] = int(row['quantity'])
+        
+        summary[product] = product_data
     
     return summary
 

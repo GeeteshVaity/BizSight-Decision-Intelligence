@@ -6,6 +6,8 @@ Author: Dhruv
 This module contains pure functions for analyzing trends in business data.
 Identifies patterns like growth, decline, stability over time periods.
 No prints, only returns.
+
+Required DataFrame columns: date, product_name, quantity, selling_price, revenue, cost, profit
 """
 
 import pandas as pd
@@ -18,7 +20,7 @@ def revenue_trend(df):
     Determines if revenue is increasing, decreasing, or stable.
     
     Args:
-        df (DataFrame): Business data with 'Date' and 'Revenue' columns
+        df (DataFrame): Business data with 'date' and 'revenue' columns
         
     Returns:
         dict: {
@@ -71,10 +73,10 @@ def revenue_trend(df):
 def profit_trend(df):
     """
     Analyze profit trend over time.
-    Calculates profit (Revenue - Cost) per period and identifies trend.
+    Uses profit column if available, otherwise calculates (revenue - cost).
     
     Args:
-        df (DataFrame): Business data with 'Date', 'Revenue', 'Cost' columns
+        df (DataFrame): Business data with 'date' and 'profit' columns (or 'revenue', 'cost')
         
     Returns:
         dict: {
@@ -86,24 +88,30 @@ def profit_trend(df):
     if df is None or df.empty:
         return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
-    required_cols = ['date', 'revenue', 'cost']
-    if not all(col in df.columns for col in required_cols):
+    # Check if profit column exists
+    if 'profit' in df.columns:
+        profit_col = 'profit'
+    elif 'revenue' in df.columns and 'cost' in df.columns:
+        # Calculate profit if not present
+        df = df.copy()
+        df['profit'] = df['revenue'] - df['cost']
+        profit_col = 'profit'
+    else:
         return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
-    # Calculate profit per row
-    df_copy = df.copy()
-    df_copy['profit'] = df_copy['revenue'] - df_copy['cost']
+    if 'date' not in df.columns:
+        return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
     # Sort by date and group by date
-    df_sorted = df_copy.sort_values('date')
-    daily_profit = df_sorted.groupby('date')['profit'].sum().reset_index()
+    df_sorted = df.sort_values('date')
+    daily_profit = df_sorted.groupby('date')[profit_col].sum().reset_index()
     
     if len(daily_profit) < 2:
         return {'trend': 'stable', 'change_percent': 0.0, 'total_change': 0.0}
     
     # Get first and last profit values
-    first_profit = daily_profit['profit'].iloc[0]
-    last_profit = daily_profit['profit'].iloc[-1]
+    first_profit = daily_profit[profit_col].iloc[0]
+    last_profit = daily_profit[profit_col].iloc[-1]
     
     # Calculate change
     total_change = last_profit - first_profit
@@ -133,7 +141,7 @@ def growth_rate(df, period='overall'):
     Calculate revenue growth rate.
     
     Args:
-        df (DataFrame): Business data with 'Date' and 'Revenue' columns
+        df (DataFrame): Business data with 'date' and 'revenue' columns
         period (str): 'overall' or 'average' (for average daily growth)
         
     Returns:
@@ -187,7 +195,7 @@ def detect_consecutive_losses(df, threshold=3):
     Detect if there are consecutive days/periods with losses.
     
     Args:
-        df (DataFrame): Business data with 'Date', 'Revenue', 'Cost' columns
+        df (DataFrame): Business data with 'date' and 'profit' columns (or 'revenue', 'cost')
         threshold (int): Number of consecutive loss days to flag as risk
         
     Returns:
@@ -204,21 +212,31 @@ def detect_consecutive_losses(df, threshold=3):
             'loss_periods': []
         }
     
-    required_cols = ['date', 'revenue', 'cost']
-    if not all(col in df.columns for col in required_cols):
+    # Check if profit column exists
+    if 'profit' in df.columns:
+        df_copy = df.copy()
+        profit_col = 'profit'
+    elif 'revenue' in df.columns and 'cost' in df.columns:
+        df_copy = df.copy()
+        df_copy['profit'] = df_copy['revenue'] - df_copy['cost']
+        profit_col = 'profit'
+    else:
         return {
             'has_consecutive_losses': False,
             'max_consecutive_days': 0,
             'loss_periods': []
         }
     
-    # Calculate daily profit
-    df_copy = df.copy()
-    df_copy['profit'] = df_copy['revenue'] - df_copy['cost']
+    if 'date' not in df_copy.columns:
+        return {
+            'has_consecutive_losses': False,
+            'max_consecutive_days': 0,
+            'loss_periods': []
+        }
     
     # Sort by date and group by date
     df_sorted = df_copy.sort_values('date')
-    daily_profit = df_sorted.groupby('date')['profit'].sum().reset_index()
+    daily_profit = df_sorted.groupby('date')[profit_col].sum().reset_index()
     
     # Find consecutive losses
     consecutive = 0
@@ -227,7 +245,7 @@ def detect_consecutive_losses(df, threshold=3):
     current_streak_dates = []
     
     for idx, row in daily_profit.iterrows():
-        if row['profit'] < 0:
+        if row[profit_col] < 0:
             consecutive += 1
             current_streak_dates.append(str(row['date']))
             max_consecutive = max(max_consecutive, consecutive)
@@ -255,7 +273,7 @@ def product_trend_ranking(df):
     Rank products by their revenue trend (which products are growing/declining).
     
     Args:
-        df (DataFrame): Business data with 'Date', 'Product', 'Revenue' columns
+        df (DataFrame): Business data with 'date', 'product_name', 'revenue' columns
         
     Returns:
         list: List of dicts sorted by growth rate, each containing:
@@ -264,15 +282,15 @@ def product_trend_ranking(df):
     if df is None or df.empty:
         return []
     
-    required_cols = ['date', 'product', 'revenue']
+    required_cols = ['date', 'product_name', 'revenue']
     if not all(col in df.columns for col in required_cols):
         return []
     
-    products = df['product'].unique()
+    products = df['product_name'].unique()
     rankings = []
     
     for product in products:
-        product_df = df[df['product'] == product].copy()
+        product_df = df[df['product_name'] == product].copy()
         
         # Sort by date
         product_df = product_df.sort_values('date')
