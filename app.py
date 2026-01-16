@@ -13,6 +13,13 @@ from intellligence.risk_detector import (
     detect_underperforming_products
 )
 
+from intellligence.insight_generator import (
+    generate_business_insights,
+    generate_product_insights,
+    generate_quick_summary
+)
+
+
 
 from analysis.analyzer import (
     total_revenue,
@@ -136,6 +143,10 @@ def main():
                 
                 df = load_data(uploaded_file)
                 raw_df = load_data(uploaded_file)
+                if raw_df is None or raw_df.empty:
+                    st.error("No valid data to analyze")
+                    st.stop()
+
                 mapped_df = map_to_internal_schema(raw_df)
                 df = validate_dataframe(mapped_df)
 
