@@ -13,7 +13,7 @@ Required DataFrame columns: date, product_name, quantity, selling_price, revenue
 import os
 import json
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 
 # Import other modules for data analysis
 # These imports will be done inside functions to avoid circular dependencies
@@ -27,8 +27,10 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+    # Initialize the client with API key
+    client = genai.Client(api_key=GEMINI_API_KEY)
 else:
+    client = None
     print("Warning: GEMINI_API_KEY not found in .env file")
 
 
@@ -90,8 +92,6 @@ def generate_business_insights(df, focus_area='overall'):
         data_summary = _prepare_data_summary(metrics, trends, risks, focus_area)
         
         # Generate AI insights
-        model = genai.GenerativeModel('gemini-pro')
-        
         prompt = f"""
 You are a business analyst AI. Analyze the following business data and provide actionable insights.
 
@@ -122,7 +122,10 @@ RECOMMENDATIONS:
 Be specific, use numbers from the data, and focus on actionable advice.
 """
         
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash-exp',
+            contents=prompt
+        )
         insights_text = response.text
         
         # Parse the response
@@ -226,8 +229,6 @@ def generate_quick_summary(df):
         
         metrics = get_all_metrics(df)
         
-        model = genai.GenerativeModel('gemini-pro')
-        
         prompt = f"""
 Summarize this business performance in 2-3 sentences:
 
@@ -241,7 +242,10 @@ Number of Products: {len(metrics['product_summary'])}
 Be concise and highlight the most important point.
 """
         
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash-exp',
+            contents=prompt
+        )
         
         return {
             'success': True,
