@@ -18,11 +18,11 @@ def revenue_trend_chart(df: pd.DataFrame):
 
 
 def profit_by_product_chart(df: pd.DataFrame):
-    grouped = df.groupby("product")["Profit"].sum()
+    grouped = df.groupby("product_name")["profit"].sum()
 
     plt.figure()
     grouped.plot(kind="bar")
-    plt.xlabel("Product")
+    plt.xlabel("product")
     plt.ylabel("Profit")
     plt.title("Profit by Product")
     plt.tight_layout()
@@ -30,7 +30,7 @@ def profit_by_product_chart(df: pd.DataFrame):
 
 
 def revenue_contribution_pie(df: pd.DataFrame):
-    grouped = df.groupby("product")["revenue"].sum()
+    grouped = df.groupby("product_name")["revenue"].sum()
 
     plt.figure()
     plt.pie(grouped.values, labels=grouped.index, autopct="%1.1f%%")
