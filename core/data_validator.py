@@ -1,19 +1,29 @@
 import pandas as pd
 
-REQUIRED_COLUMNS = ["date", "product", "revenue", "cost"]
+INTERNAL_COLUMNS = [
+    "date",
+    "product_name",
+    "quantity",
+    "selling_price",
+    "revenue",
+    "cost",
+    "profit",
+]
 
 def validate_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    # 1. Check required columns
-    missing = [col for col in REQUIRED_COLUMNS
-                if col not in df.columns]
+    missing = [c for c in INTERNAL_COLUMNS if c not in df.columns]
     if missing:
-        raise ValueError(f"Missing columns: {missing}")
+        raise ValueError(f"Missing internal columns: {missing}")
 
-    # 2. Drop rows with nulls
-    df = df.dropna(subset=REQUIRED_COLUMNS)
+    df = df.dropna(subset=["date", "product_name", "quantity", "revenue", "cost"])
 
-    # 3. Remove invalid rows
-    df = df.dropna()
-    df = df[(df["revenue"] >= 0) & (df["cost"] >= 0)] #Keep only rows where revenue ≥ 0 AND cost ≥ 0.
+    df = df[
+        (df["quantity"] >= 0)
+        & (df["revenue"] >= 0)
+        & (df["cost"] >= 0)
+    ]
+
+    df["selling_price"] = df["selling_price"].fillna(0)
+    df["profit"] = df["profit"].fillna(df["revenue"] - df["cost"])
 
     return df
