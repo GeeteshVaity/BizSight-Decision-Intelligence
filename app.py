@@ -1,6 +1,25 @@
 import sys
 import os
+import traceback
 import streamlit as st
+
+from core.data_mapper import map_to_internal_schema
+
+from intellligence.risk_detector import (
+    detect_continuous_losses,
+    detect_declining_revenue,
+    detect_high_cost_ratio,
+    detect_low_profit_margin,
+    detect_underperforming_products
+)
+
+from intellligence.insight_generator import (
+    generate_business_insights,
+    generate_product_insights,
+    generate_quick_summary
+)
+
+
 
 from analysis.analyzer import (
     total_revenue,
@@ -121,9 +140,17 @@ def main():
     if uploaded_file is not None and analyze_btn:
         try:
             with st.spinner("Validating and processing data..."):
+                
                 df = load_data(uploaded_file)
-                df = validate_dataframe(df)
-                df["Profit"] = df["revenue"] - df["cost"]
+                raw_df = load_data(uploaded_file)
+                if raw_df is None or raw_df.empty:
+                    st.error("No valid data to analyze")
+                    st.stop()
+
+                mapped_df = map_to_internal_schema(raw_df)
+                df = validate_dataframe(mapped_df)
+
+                df["profit"] = df["revenue"] - df["cost"]
 
             st.success("Data loaded and validated successfully")
 
@@ -169,7 +196,9 @@ def main():
             )
 
         except Exception as e:
-            st.error(f"❌ {e}")
+            st.error("❌ Something went wrong")
+            st.error(str(e))
+            st.text(traceback.format_exc())
 
         # --------------------------------------------------
         # Trend Insights
@@ -205,15 +234,50 @@ def main():
             )
         
         # --------------------------------------------------
-        # Risk Indicator
+        # Risk Analysis
         # --------------------------------------------------
-        if loss_info["has_consecutive_losses"]:
-            st.warning(
-                f"⚠️ Detected {loss_info['max_consecutive_days']} consecutive loss periods. "
-                "Business performance may be at risk."
+        st.divider()
+        st.markdown("### ⚠️ Risk Analysis")
+
+        risk1 = detect_continuous_losses(df)
+        risk2 = detect_declining_revenue(df)
+        risk3 = detect_high_cost_ratio(df)
+        risk4 = detect_low_profit_margin(df)
+        risk5 = detect_underperforming_products(df)
+
+        # Helper to display risk messages
+        def show_risk(risk):
+            if risk["risk_detected"]:
+                if risk.get("severity") == "high":
+                    st.error("🚨 " + risk["message"])
+                elif risk.get("severity") == "medium":
+                    st.warning("⚠️ " + risk["message"])
+                else:
+                    st.info("ℹ️ " + risk["message"])
+            else:
+                st.success("✅ " + risk["message"])
+
+        show_risk(risk1)
+        show_risk(risk2)
+        show_risk(risk3)
+        show_risk(risk4)
+
+        # --------------------------------------------------
+        # Underperforming Products (Table)
+        # --------------------------------------------------
+        if risk5["risk_detected"]:
+            st.markdown("#### 🔻 Underperforming Products")
+
+            under_df = pd.DataFrame(risk5["underperforming_products"])
+            under_df["profit_margin"] = under_df["profit_margin"].round(2)
+
+            st.dataframe(
+                under_df,
+                use_container_width=True
             )
         else:
-            st.success("✅ No consecutive loss periods detected.")
+            st.success("✅ No underperforming products detected.")
+
         
 
     # --------------------------------------------------

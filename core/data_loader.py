@@ -1,22 +1,30 @@
 import pandas as pd
 
 
+import pandas as pd
 
-def load_data(file_path) -> pd.DataFrame:
-    #Load CSV file and return clean pandas DataFrame.
+import pandas as pd
+
+import pandas as pd
+
+def load_data(file):
     try:
-        df = pd.read_csv(file_path)
-    except FileNotFoundError:
-        raise Exception('CSV not found.')
-    
+        if file is None:
+            raise ValueError("No file uploaded")
 
-    
-    #Handle missing values by replacing empty values with 0
-    df["revenue"] = df["revenue"].fillna(0)
-    df["cost"] = df["cost"].fillna(0)
+        if file.size == 0:
+            raise ValueError("Uploaded file is empty")
 
+        # 🔥 THIS LINE GOES HERE (before read_csv)
+        file.seek(0)
 
-    #Convert date
-    df["date"] = pd.to_datetime(df["date"])
+        # 🔥 Robust CSV read
+        df = pd.read_csv(file, sep=None, engine="python")
 
-    return df
+        if df.empty:
+            raise ValueError("CSV has no data")
+
+        return df
+
+    except Exception as e:
+        raise Exception(f"Failed to read CSV: {e}")
