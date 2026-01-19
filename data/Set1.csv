@@ -1,4 +1,4 @@
-date,gender,category,product_name,sales,quantity,discount,profit,shipping_Cost
+date,gender,category,product_name,sales,quantity,discount,profit,shipping_cost
 1/2/2018,Female,Auto & Accessories,Car Media Players,140,1,0.3,46,4.6
 7/24/2018,Female,Auto & Accessories,Car Speakers,211,1,0.3,112,11.2
 11/8/2018,Female,Auto & Accessories,Car Body Covers,117,5,0.1,31.2,3.1

@@ -1,4 +1,4 @@
-date,category,product_name,quantity,price,total_amount,discount,final_amount
+date,category,product_name,quantity,price,total_amount,discount,selling_price
 8/26/2023,Produce,Pasta,2,7.46,14.92,0,14.92
 2/13/2024,Dairy,Cheese,1,1.85,1.85,3.41,-1.56
 11/23/2023,Bakery,Onions,4,7.38,29.52,4.04,25.48
