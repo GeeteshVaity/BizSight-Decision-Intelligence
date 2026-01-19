@@ -1,11 +1,20 @@
-import sys
 import os
+import sys
 import traceback
+import pandas as pd
 import streamlit as st
 
+# ------------------ Imports ------------------
+from core.data_loader import load_data
 from core.data_mapper import map_to_internal_schema
+from core.data_validator import validate_dataframe
 
-from intellligence.risk_detector import (
+from analysis.analyzer import (
+    total_revenue, total_cost, total_profit, profit_margin
+)
+from analysis.trends import revenue_trend, profit_trend, growth_rate
+
+from intelligence.risk_detector import (
     detect_continuous_losses,
     detect_declining_revenue,
     detect_high_cost_ratio,
@@ -13,20 +22,15 @@ from intellligence.risk_detector import (
     detect_underperforming_products
 )
 
-from intellligence.insight_generator import (
+from intelligence.insight_generator import (
     generate_business_insights,
-    generate_product_insights,
     generate_quick_summary
 )
 
+from simulation.simulator import simulate_changes
+from simulation.comparator import compare_profit
 
-
-from analysis.analyzer import (
-    total_revenue,
-    total_cost,
-    total_profit,
-    profit_margin
-)
+from reports.report_generator import generate_report
 
 from visualization.charts import (
     revenue_trend_chart,
@@ -34,296 +38,191 @@ from visualization.charts import (
     revenue_contribution_pie
 )
 
-from analysis.trends import (
-    revenue_trend,
-    profit_trend,
-    growth_rate,
-    detect_consecutive_losses
+# ------------------ Page Config ------------------
+st.set_page_config(
+    page_title="BizSight – Decision Intelligence",
+    page_icon="📊",
+    layout="centered"
 )
 
+# ------------------ Session State ------------------
+def init_state():
+    defaults = {
+        "data_loaded": False,
+        "df": None,
+        "ai_result": None,
+        "summary": None,
+        "simulated_df": None,
+        "simulation_result": None,
+        "business_report": None,
+        "rev_change": 0,
+        "cost_change": 0
+    }
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
 
+init_state()
 
+# ------------------ Header ------------------
+st.markdown(
+    """
+    <h1 style="text-align:center;">BizSight</h1>
+    <p style="text-align:center; color:gray;">
+    Business Decision Intelligence for Retail & FMCG Companies
+    </p>
+    """,
+    unsafe_allow_html=True
+)
 
-# Add project root to Python path
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+st.divider()
 
-from core.data_loader import load_data
-from core.data_validator import validate_dataframe
+# ------------------ Upload ------------------
+uploaded_file = st.file_uploader(
+    "Upload CSV file",
+    type=["csv"]
+)
 
+col1, col2 = st.columns(2)
+analyze = col1.button("🔍 Analyze", disabled=uploaded_file is None)
+reset = col2.button("♻ Reset")
 
-def main():
-    # --------------------------------------------------
-    # Session state (for uploader reset)
-    # --------------------------------------------------
-    if "uploader_key" not in st.session_state:
-        st.session_state.uploader_key = 0
+if reset:
+    st.session_state.clear()
+    st.rerun()
 
-    # --------------------------------------------------
-    # App Configuration
-    # --------------------------------------------------
-    st.set_page_config(
-        page_title="BizSight – Decision Intelligence",
-        page_icon="📊",
-        layout="centered"
-    )
+# ------------------ Analyze (LOAD DATA ONLY) ------------------
+if analyze and uploaded_file:
+    try:
+        with st.spinner("Processing data..."):
+            raw_df = load_data(uploaded_file)
+            mapped = map_to_internal_schema(raw_df)
+            df = validate_dataframe(mapped)
+            df["profit"] = df["revenue"] - df["cost"]
 
-    # --------------------------------------------------
-    # Header Section
-    # --------------------------------------------------
-    st.markdown(
-        """
-        <h1 style="text-align:center;">BizSight</h1>
-        <p style="text-align:center; color:gray;">
-        Business Decision Intelligence for Retail & FMCG Companies
-        </p>
-        """,
-        unsafe_allow_html=True
-    )
+            st.session_state.df = df
+            st.session_state.data_loaded = True
+            st.session_state.ai_result = None
+            st.session_state.summary = None
+            st.session_state.business_report = None
+            st.session_state.simulated_df = None
+            st.session_state.simulation_result = None
 
+        st.success("Data loaded successfully")
+
+    except Exception:
+        st.error("Failed to process data")
+        st.text(traceback.format_exc())
+
+# ================== RENDER APP ==================
+if st.session_state.data_loaded:
+    df = st.session_state.df
+
+    # ------------------ Metrics ------------------
     st.divider()
+    st.markdown("### 📈 Business Performance")
 
-    # --------------------------------------------------
-    # Instructions
-    # --------------------------------------------------
-    st.markdown(
-        """
-        ### 📁 Upload Business Data
-        Upload a CSV file containing monthly product-wise business data.
-        
-        **Required columns:**
-        - `date`
-        - `product`
-        - `revenue`
-        - `cost`
-        """
-    )
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Revenue", f"₹ {total_revenue(df):,.0f}")
+    c2.metric("Cost", f"₹ {total_cost(df):,.0f}")
+    c3.metric("Profit", f"₹ {total_profit(df):,.0f}")
+    c4.metric("Margin", f"{profit_margin(df):.2f}%")
 
-    # --------------------------------------------------
-    # File Upload
-    # --------------------------------------------------
-    uploaded_file = st.file_uploader(
-        "Select CSV file",
-        type=["csv"],
-        key=f"csv_uploader_{st.session_state.uploader_key}"
-    )
+    # ------------------ Risks ------------------
+    st.divider()
+    st.markdown("### ⚠️ Risk Analysis")
 
-    # --------------------------------------------------
-    # Action Buttons
-    # --------------------------------------------------
-    col1, col2 = st.columns(2)
+    risks = [
+        detect_continuous_losses(df),
+        detect_declining_revenue(df),
+        detect_high_cost_ratio(df),
+        detect_low_profit_margin(df)
+    ]
 
-    with col1:
-        analyze_btn = st.button(
-            "🔍 Analyze",
-            width='stretch',
-            disabled=uploaded_file is None
-        )
-
-    with col2:
-        reset_btn = st.button(
-            "♻ Reset",
-           width='stretch'
-        )
-
-    # --------------------------------------------------
-    # Reset Logic
-    # --------------------------------------------------
-    if reset_btn:
-        st.session_state.uploader_key += 1
-        st.rerun()
-
-    # --------------------------------------------------
-    # Core Logic
-    # --------------------------------------------------
-    if uploaded_file is not None and analyze_btn:
-        try:
-            with st.spinner("Validating and processing data..."):
-                
-                df = load_data(uploaded_file)
-                raw_df = load_data(uploaded_file)
-                if raw_df is None or raw_df.empty:
-                    st.error("No valid data to analyze")
-                    st.stop()
-
-                mapped_df = map_to_internal_schema(raw_df)
-                df = validate_dataframe(mapped_df)
-
-                df["profit"] = df["revenue"] - df["cost"]
-
-            st.success("Data loaded and validated successfully")
-
-            # --------------------------------------------------
-            # Business Metrics
-            # --------------------------------------------------
-            st.markdown("### 📈 Business Performance Summary")
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric(
-                    label="Total Revenue",
-                    value=f"₹ {total_revenue(df):,.0f}"
-                )
-            
-            with col2:
-                st.metric(
-                    label="Total Cost",
-                    value=f"₹ {total_cost(df):,.0f}"
-                )
-            
-            with col3:
-                profit = total_profit(df)
-                st.metric(
-                    label="Total Profit",
-                    value=f"₹ {profit:,.0f}",
-                    delta="Profit" if profit >= 0 else "Loss"
-                )
-            
-            with col4:
-                st.metric(
-                    label="Profit Margin",
-                    value=f"{profit_margin(df):.2f} %"
-                )
-            
-
-            st.markdown("### 🔎 Data Preview")
-            st.dataframe(df.head(), width='stretch')
-
-            st.caption(
-                "Showing first 5 rows of the uploaded dataset."
-            )
-
-        except Exception as e:
-            st.error("❌ Something went wrong")
-            st.error(str(e))
-            st.text(traceback.format_exc())
-
-        # --------------------------------------------------
-        # Trend Insights
-        # --------------------------------------------------
-        st.divider()
-        st.markdown("### 📉 Trend Insights")
-        
-        rev_trend = revenue_trend(df)
-        prof_trend = profit_trend(df)
-        overall_growth = growth_rate(df, "overall")
-        loss_info = detect_consecutive_losses(df)
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric(
-                label="Revenue Trend",
-                value=rev_trend["trend"].capitalize(),
-                delta=f"{rev_trend['change_percent']:.2f}%"
-            )
-        
-        with col2:
-            st.metric(
-                label="Profit Trend",
-                value=prof_trend["trend"].capitalize(),
-                delta=f"{prof_trend['change_percent']:.2f}%"
-            )
-        
-        with col3:
-            st.metric(
-                label="Overall Growth Rate",
-                value=f"{overall_growth:.2f}%"
-            )
-        
-        # --------------------------------------------------
-        # Risk Analysis
-        # --------------------------------------------------
-        st.divider()
-        st.markdown("### ⚠️ Risk Analysis")
-
-        risk1 = detect_continuous_losses(df)
-        risk2 = detect_declining_revenue(df)
-        risk3 = detect_high_cost_ratio(df)
-        risk4 = detect_low_profit_margin(df)
-        risk5 = detect_underperforming_products(df)
-
-        # Helper to display risk messages
-        def show_risk(risk):
-            if risk["risk_detected"]:
-                if risk.get("severity") == "high":
-                    st.error("🚨 " + risk["message"])
-                elif risk.get("severity") == "medium":
-                    st.warning("⚠️ " + risk["message"])
-                else:
-                    st.info("ℹ️ " + risk["message"])
-            else:
-                st.success("✅ " + risk["message"])
-
-        show_risk(risk1)
-        show_risk(risk2)
-        show_risk(risk3)
-        show_risk(risk4)
-
-        # --------------------------------------------------
-        # Underperforming Products (Table)
-        # --------------------------------------------------
-        if risk5["risk_detected"]:
-            st.markdown("#### 🔻 Underperforming Products")
-
-            under_df = pd.DataFrame(risk5["underperforming_products"])
-            under_df["profit_margin"] = under_df["profit_margin"].round(2)
-
-            st.dataframe(
-                under_df,
-                use_container_width=True
-            )
+    for r in risks:
+        if r["risk_detected"]:
+            st.warning(r["message"])
         else:
-            st.success("✅ No underperforming products detected.")
+            st.success(r["message"])
 
-        
-
-    # --------------------------------------------------
-    # Visualization 
-    # --------------------------------------------------
-    if uploaded_file is not None and analyze_btn:
-        st.divider()
-        st.markdown("### 📊 Visual Insights")
-
-        # Create two columns
-        col1, col2 = st.columns(2)
-
-        with col1:
-            try:
-                plt_obj = revenue_trend_chart(df)
-                st.pyplot(plt_obj)
-                plt_obj.clf()
-            except Exception as e:
-                st.warning(f"Unable to render revenue trend chart: {e}")
-
-        with col2:
-            try:
-                plt_obj = profit_by_product_chart(df)
-                st.pyplot(plt_obj)
-                plt_obj.clf()
-            except Exception as e:
-                st.warning(f"Unable to render profit by product chart: {e}")
-
-        # Pie chart below (full width)
-        try:
-            plt_obj = revenue_contribution_pie(df)
-            st.pyplot(plt_obj)
-            plt_obj.clf()
-        except Exception as e:
-            st.warning(f"Unable to render revenue contribution pie: {e}")
-
-
-
-    # --------------------------------------------------
-    # Footer
-    # --------------------------------------------------
+    # ------------------ What-If Simulator ------------------
     st.divider()
-    st.caption(
-        "BizSight © 2026 | Business Decision Intelligence System"
+    st.markdown("### 🧪 What-If Simulator")
+
+    st.session_state.rev_change = st.slider(
+        "Revenue Change (%)", -50, 50, st.session_state.rev_change
+    )
+    st.session_state.cost_change = st.slider(
+        "Cost Change (%)", -50, 50, st.session_state.cost_change
     )
 
+    if st.button("▶ Run Simulation"):
+        st.session_state.simulated_df = simulate_changes(
+            df,
+            st.session_state.rev_change,
+            st.session_state.cost_change
+        )
+        st.session_state.simulation_result = compare_profit(
+            df,
+            st.session_state.simulated_df
+        )
 
-if __name__ == "__main__":
-    main()
+    if st.session_state.simulation_result:
+        r = st.session_state.simulation_result
+        st.metric("Profit Impact", f"₹ {r['difference']:,.0f}")
+
+    # ------------------ AI Insights ------------------
+    st.divider()
+    st.markdown("### 🤖 AI Insights")
+
+    if st.session_state.ai_result is None:
+        with st.spinner("Generating AI insights..."):
+            st.session_state.ai_result = generate_business_insights(df)
+            st.session_state.summary = generate_quick_summary(df)
+
+    ai = st.session_state.ai_result
+
+    if ai["success"]:
+        st.info(st.session_state.summary["summary"])
+        st.write(ai["insights"])
+
+        st.markdown("**Key Points**")
+        for p in ai["key_points"]:
+            st.markdown(f"- {p}")
+
+        st.markdown("**Recommendations**")
+        for r in ai["recommendations"]:
+            st.markdown(f"- {r}")
+    else:
+        st.warning("AI unavailable due to quota limits")
+
+    # ------------------ Report ------------------
+    st.divider()
+    st.markdown("### 📝 Business Report")
+
+    if st.button("📄 Generate Report"):
+        st.session_state.business_report = generate_report(
+            metrics={
+                "Revenue": total_revenue(df),
+                "Cost": total_cost(df),
+                "Profit": total_profit(df),
+                "Margin": profit_margin(df)
+            },
+            risks=[r["message"] for r in risks if r["risk_detected"]],
+            ai_insights=ai["insights"] if ai["success"] else "AI unavailable"
+        )
+
+    if st.session_state.business_report:
+        st.text(st.session_state.business_report)
+
+    # ------------------ Charts ------------------
+    st.divider()
+    st.markdown("### 📊 Visual Insights")
+
+    st.pyplot(revenue_trend_chart(df))
+    st.pyplot(profit_by_product_chart(df))
+    st.pyplot(revenue_contribution_pie(df))
+
+# ------------------ Footer ------------------
+st.divider()
+st.caption("BizSight © 2026 | Decision Intelligence System")

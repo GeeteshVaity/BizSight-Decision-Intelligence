@@ -27,44 +27,42 @@ def map_to_internal_schema(df: pd.DataFrame) -> pd.DataFrame:
     else:
         df["quantity"] = 0
 
-    # Selling price
-    for col in ["selling_price", "unit_price", "price"]:
+    # Selling price (ONLY for revenue calculation)
+    selling_price_col = None
+    for col in ["selling_price","sell_price", "mrp", "unit_selling_price"]:
         if col in df.columns:
+            selling_price_col = col
             df["selling_price"] = pd.to_numeric(df[col], errors="coerce")
             break
-    else:
-        df["selling_price"] = 0
 
     # Revenue
     if "revenue" in df.columns:
         df["revenue"] = pd.to_numeric(df["revenue"], errors="coerce")
+    elif selling_price_col is not None:
+        df["revenue"] = df["quantity"] * df["selling_price"]
     elif "total_price" in df.columns:
         df["revenue"] = pd.to_numeric(df["total_price"], errors="coerce")
     elif "sales" in df.columns:
         df["revenue"] = pd.to_numeric(df["sales"], errors="coerce")
     else:
-        df["revenue"] = df["quantity"] * df["selling_price"]
+        df["revenue"] = 0
 
-    # Cost
+    # Cost (price treated as COST per unit)
     if "cost" in df.columns:
         df["cost"] = pd.to_numeric(df["cost"], errors="coerce")
-    elif "unit_cost" in df.columns:
-        df["cost"] = pd.to_numeric(df["unit_cost"], errors="coerce") * df["quantity"]
+    elif "price" in df.columns:
+        df["cost"] = pd.to_numeric(df["price"], errors="coerce") * df["quantity"]
     else:
         df["cost"] = 0
 
     # Profit
-    if "profit" in df.columns:
-        df["profit"] = pd.to_numeric(df["profit"], errors="coerce")
-    else:
-        df["profit"] = df["revenue"] - df["cost"]
+    df["profit"] = df["revenue"] - df["cost"]
 
     return df[
         [
             "date",
             "product_name",
             "quantity",
-            "selling_price",
             "revenue",
             "cost",
             "profit",

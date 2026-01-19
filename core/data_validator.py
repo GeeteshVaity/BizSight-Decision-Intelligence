@@ -1,29 +1,26 @@
 import pandas as pd
 
-INTERNAL_COLUMNS = [
+REQUIRED_COLUMNS = [
     "date",
     "product_name",
     "quantity",
-    "selling_price",
     "revenue",
     "cost",
     "profit",
 ]
 
 def validate_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    missing = [c for c in INTERNAL_COLUMNS if c not in df.columns]
+    missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
     if missing:
         raise ValueError(f"Missing internal columns: {missing}")
 
-    df = df.dropna(subset=["date", "product_name", "quantity", "revenue", "cost"])
+    # Ensure correct dtypes and no NaNs
+    df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce").fillna(0)
+    df["revenue"] = pd.to_numeric(df["revenue"], errors="coerce").fillna(0)
+    df["cost"] = pd.to_numeric(df["cost"], errors="coerce").fillna(0)
+    df["profit"] = pd.to_numeric(df["profit"], errors="coerce").fillna(0)
 
-    df = df[
-        (df["quantity"] >= 0)
-        & (df["revenue"] >= 0)
-        & (df["cost"] >= 0)
-    ]
-
-    df["selling_price"] = df["selling_price"].fillna(0)
-    df["profit"] = df["profit"].fillna(df["revenue"] - df["cost"])
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
     return df
