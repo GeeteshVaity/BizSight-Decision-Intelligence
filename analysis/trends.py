@@ -1,15 +1,3 @@
-"""
-BizSight - Trend Analysis Module
-File: analysis/trends.py
-Author: Dhruv
-
-This module contains pure functions for analyzing trends in business data.
-Identifies patterns like growth, decline, stability over time periods.
-No prints, only returns.
-
-Required DataFrame columns: date, product_name, quantity, selling_price, revenue, cost, profit
-"""
-
 import pandas as pd
 import numpy as np
 

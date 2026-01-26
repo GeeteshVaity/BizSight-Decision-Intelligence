@@ -1,7 +1,4 @@
-import os
-import sys
 import traceback
-import pandas as pd
 import streamlit as st
 
 # ------------------ Imports ------------------
@@ -12,14 +9,12 @@ from core.data_validator import validate_dataframe
 from analysis.analyzer import (
     total_revenue, total_cost, total_profit, profit_margin
 )
-from analysis.trends import revenue_trend, profit_trend, growth_rate
 
 from intelligence.risk_detector import (
     detect_continuous_losses,
     detect_declining_revenue,
     detect_high_cost_ratio,
-    detect_low_profit_margin,
-    detect_underperforming_products
+    detect_low_profit_margin
 )
 
 from intelligence.insight_generator import (
@@ -69,7 +64,7 @@ st.markdown(
     """
     <h1 style="text-align:center;">BizSight</h1>
     <p style="text-align:center; color:gray;">
-    Business Decision Intelligence for Retail & FMCG Companies
+    Business Decision Intelligence for Retail & FMCG
     </p>
     """,
     unsafe_allow_html=True
@@ -91,22 +86,23 @@ if reset:
     st.session_state.clear()
     st.rerun()
 
-# ------------------ Analyze (LOAD DATA ONLY) ------------------
+# ------------------ Analyze (LOAD DATA) ------------------
 if analyze and uploaded_file:
     try:
         with st.spinner("Processing data..."):
             raw_df = load_data(uploaded_file)
-            mapped = map_to_internal_schema(raw_df)
-            df = validate_dataframe(mapped)
+            mapped_df = map_to_internal_schema(raw_df)
+            df = validate_dataframe(mapped_df)
+
             df["profit"] = df["revenue"] - df["cost"]
 
             st.session_state.df = df
             st.session_state.data_loaded = True
             st.session_state.ai_result = None
             st.session_state.summary = None
-            st.session_state.business_report = None
             st.session_state.simulated_df = None
             st.session_state.simulation_result = None
+            st.session_state.business_report = None
 
         st.success("Data loaded successfully")
 
@@ -114,7 +110,7 @@ if analyze and uploaded_file:
         st.error("Failed to process data")
         st.text(traceback.format_exc())
 
-# ================== RENDER APP ==================
+# ================== MAIN APP ==================
 if st.session_state.data_loaded:
     df = st.session_state.df
 
@@ -128,7 +124,7 @@ if st.session_state.data_loaded:
     c3.metric("Profit", f"₹ {total_profit(df):,.0f}")
     c4.metric("Margin", f"{profit_margin(df):.2f}%")
 
-    # ------------------ Risks ------------------
+    # ------------------ Risk Analysis ------------------
     st.divider()
     st.markdown("### ⚠️ Risk Analysis")
 
@@ -173,7 +169,7 @@ if st.session_state.data_loaded:
 
     # ------------------ AI Insights ------------------
     st.divider()
-    st.markdown("### 🤖 AI Insights")
+    st.markdown("### 🤖 AI Insights (Gemini Flash Lite)")
 
     if st.session_state.ai_result is None:
         with st.spinner("Generating AI insights..."):
@@ -194,7 +190,7 @@ if st.session_state.data_loaded:
         for r in ai["recommendations"]:
             st.markdown(f"- {r}")
     else:
-        st.warning("AI unavailable due to quota limits")
+        st.warning("AI unavailable (quota / billing limitation)")
 
     # ------------------ Report ------------------
     st.divider()
