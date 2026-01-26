@@ -1,12 +1,5 @@
 import pandas as pd
 
-
-import pandas as pd
-
-import pandas as pd
-
-import pandas as pd
-
 def load_data(file):
     try:
         if file is None:

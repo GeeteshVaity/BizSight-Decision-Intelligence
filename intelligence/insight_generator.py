@@ -2,19 +2,29 @@ import os
 from dotenv import load_dotenv
 from google import genai
 
+# --------------------------------------------------
+# ENV SETUP
+# --------------------------------------------------
+
 load_dotenv()
-
 API_KEY = os.getenv("GEMINI_API_KEY")
+AI_AVAILABLE = bool(API_KEY)
 
-if not API_KEY:
-    raise RuntimeError("GEMINI_API_KEY not found")
+client = None
+if AI_AVAILABLE:
+    client = genai.Client(api_key=API_KEY)
 
-client = genai.Client(api_key=API_KEY)
+# --------------------------------------------------
+# MODEL CONFIG (LOCKED)
+# --------------------------------------------------
 
 MODEL_NAME = "models/gemini-flash-lite-latest"
 
+# --------------------------------------------------
+# BUSINESS INSIGHTS
+# --------------------------------------------------
 
-def generate_business_insights(df, focus_area="overall"):
+def generate_business_insights(df, focus_area="overall", model_key=None):
     if df is None or df.empty:
         return {
             "success": False,
@@ -35,31 +45,44 @@ def generate_business_insights(df, focus_area="overall"):
 
         summary = _prepare_data_summary(metrics, trends, risks)
 
+        # --------- NO AI FALLBACK ----------
+        if not AI_AVAILABLE or client is None:
+            return {
+                "success": True,
+                "insights": "AI insights unavailable. Showing rule-based analysis only.",
+                "key_points": list(risks["summary"].values())[:3],
+                "recommendations": [
+                    "Review pricing strategy",
+                    "Optimize inventory levels",
+                    "Focus on high-performing products"
+                ],
+                "error": None
+            }
+
         prompt = f"""
-        You are a business analyst AI.
+You are a business analyst AI.
 
-        Analyze the data below and respond in EXACTLY this format.
-        Do NOT add extra text or explanations.
+Analyze the data below and respond in EXACTLY this format.
+Do NOT add extra text.
 
-        DATA:
-        {summary}
+DATA:
+{summary}
 
-        FORMAT (FOLLOW STRICTLY):
+FORMAT:
 
-        INSIGHTS:
-        <one clear paragraph>
+INSIGHTS:
+<one paragraph>
 
-        KEY POINTS:
-        - Point 1
-        - Point 2
-        - Point 3
+KEY POINTS:
+- Point 1
+- Point 2
+- Point 3
 
-        RECOMMENDATIONS:
-        - Recommendation 1
-        - Recommendation 2
-        - Recommendation 3
-        """
-
+RECOMMENDATIONS:
+- Recommendation 1
+- Recommendation 2
+- Recommendation 3
+"""
 
         response = client.models.generate_content(
             model=MODEL_NAME,
@@ -85,7 +108,7 @@ def generate_business_insights(df, focus_area="overall"):
                 "insights": "",
                 "key_points": [],
                 "recommendations": [],
-                "error": "AI quota exceeded. Please try again later."
+                "error": "AI quota exceeded"
             }
 
         return {
@@ -97,37 +120,24 @@ def generate_business_insights(df, focus_area="overall"):
         }
 
 
-def generate_product_insights(df, product_name):
-    if df is None or df.empty:
-        return {"success": False, "insights": "", "error": "No data"}
+# --------------------------------------------------
+# QUICK SUMMARY
+# --------------------------------------------------
 
-    if "product_name" not in df.columns:
-        return {
-            "success": False,
-            "insights": "",
-            "error": "product_name column missing"
-        }
-
-    product_df = df[df["product_name"] == product_name]
-
-    if product_df.empty:
-        return {
-            "success": False,
-            "insights": "",
-            "error": f"No data for product: {product_name}"
-        }
-
-    return generate_business_insights(product_df, focus_area="products")
-
-
-def generate_quick_summary(df):
+def generate_quick_summary(df, model_key=None):
     if df is None or df.empty:
         return {"success": False, "summary": "", "error": "No data"}
 
     try:
         from analysis.analyzer import get_all_metrics
-
         metrics = get_all_metrics(df)
+
+        if not AI_AVAILABLE or client is None:
+            return {
+                "success": True,
+                "summary": "Business summary unavailable (AI not configured).",
+                "error": None
+            }
 
         prompt = f"""
 Summarize the business performance in 2 sentences.
@@ -156,6 +166,9 @@ Margin: {metrics['profit_margin']}%
             "error": str(e)
         }
 
+# --------------------------------------------------
+# HELPERS
+# --------------------------------------------------
 
 def _prepare_data_summary(metrics, trends, risks):
     return f"""
@@ -169,7 +182,6 @@ Profit Trend: {trends['profit_trend']['trend']}
 
 Risk Level: {risks['summary']['overall_risk_level']}
 """
-
 
 def _parse_ai_response(text):
     insights = ""
@@ -193,16 +205,14 @@ def _parse_ai_response(text):
         if section == "insights" and l:
             insights += " " + l
 
-        elif section == "key" and l:
-            if l.startswith(("-", "•")) or l[0].isdigit():
-                key_points.append(l.lstrip("-•0123456789. ").strip())
+        elif section == "key" and l.startswith(("-", "•")):
+            key_points.append(l.lstrip("-• ").strip())
 
-        elif section == "rec" and l:
-            if l.startswith(("-", "•")) or l[0].isdigit():
-                recommendations.append(l.lstrip("-•0123456789. ").strip())
+        elif section == "rec" and l.startswith(("-", "•")):
+            recommendations.append(l.lstrip("-• ").strip())
 
     return {
         "insights": insights.strip() or text.strip(),
-        "key_points": key_points if key_points else ["No key points generated"],
-        "recommendations": recommendations if recommendations else ["No recommendations generated"]
+        "key_points": key_points or ["No key points generated"],
+        "recommendations": recommendations or ["No recommendations generated"]
     }
