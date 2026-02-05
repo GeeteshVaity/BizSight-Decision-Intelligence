@@ -107,7 +107,7 @@ def detect_continuous_losses(df, threshold_days=3):
     
     # Generate message
     if risk_detected:
-        message = f"Warning: {max_consecutive} consecutive days of losses detected. Total loss: ${total_loss:,.2f}"
+        message = f"Warning: {max_consecutive} consecutive days of losses detected. Total loss: ₹{total_loss:,.2f}"
     else:
         message = "No continuous loss pattern detected"
     
@@ -196,7 +196,7 @@ def detect_declining_revenue(df, threshold_percent=-10):
     
     # Generate message
     if risk_detected:
-        message = f"Warning: Revenue declining by {abs(decline_percent):.2f}%. Change: ${revenue_change:,.2f}"
+        message = f"Warning: Revenue declining by {abs(decline_percent):.2f}%. Change: ₹{revenue_change:,.2f}"
     else:
         message = "Revenue trend is stable or growing"
     
