@@ -2,4 +2,8 @@ streamlit
 numpy
 pandas
 matplotlib
-google-genai
+reportlab
+kaleido
+plotly
+groq
+

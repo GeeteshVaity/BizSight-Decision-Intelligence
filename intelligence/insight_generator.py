@@ -1,23 +1,14 @@
-import os
 import streamlit as st
-from google import genai
+from groq import Groq
 
 # --------------------------------------------------
-# ENV SETUP
+# GROQ SETUP (STREAMLIT CLOUD SAFE)
 # --------------------------------------------------
 
-API_KEY = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", None)
-AI_AVAILABLE = bool(API_KEY)
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+AI_AVAILABLE = True
 
-client = None
-if AI_AVAILABLE:
-    client = genai.Client(api_key=API_KEY)
-
-# --------------------------------------------------
-# MODEL CONFIG (LOCKED)
-# --------------------------------------------------
-
-MODEL_NAME = "models/gemini-flash-lite-latest"
+MODEL_NAME = "llama-3.1-8b-instant"
 
 # --------------------------------------------------
 # BUSINESS INSIGHTS
@@ -45,7 +36,7 @@ def generate_business_insights(df, focus_area="overall", model_key=None):
         summary = _prepare_data_summary(metrics, trends, risks)
 
         # --------- NO AI FALLBACK ----------
-        if not AI_AVAILABLE or client is None:
+        if not AI_AVAILABLE:
             return {
                 "success": True,
                 "insights": "AI insights unavailable. Showing rule-based analysis only.",
@@ -83,12 +74,17 @@ RECOMMENDATIONS:
 - Recommendation 3
 """
 
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=MODEL_NAME,
-            contents=prompt
+            messages=[
+                {"role": "system", "content": "You are a professional business intelligence assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.4,
         )
 
-        parsed = _parse_ai_response(response.text)
+        text = response.choices[0].message.content
+        parsed = _parse_ai_response(text)
 
         return {
             "success": True,
@@ -100,15 +96,6 @@ RECOMMENDATIONS:
 
     except Exception as e:
         msg = str(e)
-
-        if "RESOURCE_EXHAUSTED" in msg or "Quota" in msg:
-            return {
-                "success": False,
-                "insights": "",
-                "key_points": [],
-                "recommendations": [],
-                "error": "AI quota exceeded"
-            }
 
         return {
             "success": False,
@@ -131,13 +118,6 @@ def generate_quick_summary(df, model_key=None):
         from analysis.analyzer import get_all_metrics
         metrics = get_all_metrics(df)
 
-        if not AI_AVAILABLE or client is None:
-            return {
-                "success": True,
-                "summary": "Business summary unavailable (AI not configured).",
-                "error": None
-            }
-
         prompt = f"""
 Summarize the business performance in 2 sentences.
 
@@ -147,14 +127,15 @@ Profit: {metrics['total_profit']}
 Margin: {metrics['profit_margin']}%
 """
 
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=MODEL_NAME,
-            contents=prompt
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
         )
 
         return {
             "success": True,
-            "summary": response.text.strip(),
+            "summary": response.choices[0].message.content.strip(),
             "error": None
         }
 
@@ -166,7 +147,7 @@ Margin: {metrics['profit_margin']}%
         }
 
 # --------------------------------------------------
-# HELPERS
+# HELPERS (UNCHANGED)
 # --------------------------------------------------
 
 def _prepare_data_summary(metrics, trends, risks):

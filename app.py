@@ -1,5 +1,28 @@
 import traceback
 import streamlit as st
+import tempfile
+import os
+from reports.pdf_report import generate_pdf_report
+
+
+def save_charts_to_images(df):
+    temp_dir = tempfile.mkdtemp()
+
+    charts = {
+        "revenue.png": revenue_trend_chart(df),
+        "profit.png": profit_by_product_chart(df),
+        "pie.png": revenue_contribution_pie(df)
+    }
+
+    paths = []
+
+    for name, fig in charts.items():
+        path = os.path.join(temp_dir, name)
+        fig.write_image(path)
+        paths.append(path)
+
+    return paths
+
 
 # ------------------ Imports ------------------
 from core.data_loader import load_data
@@ -36,8 +59,7 @@ from visualization.charts import (
 # ------------------ Page Config ------------------
 st.set_page_config(
     page_title="BizSight – Decision Intelligence",
-    page_icon="📊",
-    layout="centered"
+    layout="wide"
 )
 
 # ------------------ Session State ------------------
@@ -116,7 +138,7 @@ if st.session_state.data_loaded:
 
     # ------------------ Metrics ------------------
     st.divider()
-    st.markdown("### 📈 Business Performance")
+    st.markdown("### Business Performance")
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Revenue", f"₹ {total_revenue(df):,.0f}")
@@ -126,7 +148,7 @@ if st.session_state.data_loaded:
 
     # ------------------ Risk Analysis ------------------
     st.divider()
-    st.markdown("### ⚠️ Risk Analysis")
+    st.markdown("### Risk Analysis")
 
     risks = [
         detect_continuous_losses(df),
@@ -143,7 +165,7 @@ if st.session_state.data_loaded:
 
     # ------------------ What-If Simulator ------------------
     st.divider()
-    st.markdown("### 🧪 What-If Simulator")
+    st.markdown("### What-If Simulator")
 
     st.session_state.rev_change = st.slider(
         "Revenue Change (%)", -50, 50, st.session_state.rev_change
@@ -169,32 +191,69 @@ if st.session_state.data_loaded:
 
     # ------------------ AI Insights ------------------
     st.divider()
-    st.markdown("### 🤖 AI Insights (Gemini Flash Lite)")
-
-    if st.session_state.ai_result is None:
-        with st.spinner("Generating AI insights..."):
-            st.session_state.ai_result = generate_business_insights(df)
-            st.session_state.summary = generate_quick_summary(df)
-
+    st.markdown("### 🤖 AI Insights (AI-Powered Analysis)")
+    
+    # --- Safety flags ---
+    AI_KEY_AVAILABLE = "GROQ_API_KEY" in st.secrets
+    
+    # Run button (disabled if key missing or already run)
+    run_ai = st.button(
+        "Generate AI Insights",
+        disabled=(
+            not AI_KEY_AVAILABLE or
+            st.session_state.ai_result is not None
+        )
+    )
+    
+    # Inform user if key missing
+    if not AI_KEY_AVAILABLE:
+        st.warning("AI is disabled. API key not configured.")
+    
+    # Run AI ONLY on button click
+    if run_ai:
+        with st.spinner("AI is analyzing your business data..."):
+            try:
+                st.session_state.ai_result = generate_business_insights(df)
+                st.session_state.summary = generate_quick_summary(df)
+            except Exception as e:
+                st.session_state.ai_result = {
+                    "success": False,
+                    "error": str(e)
+                }
+    
     ai = st.session_state.ai_result
+    
+    # Display results (if available)
+    if ai:
+        if ai.get("success"):
+            st.info(st.session_state.summary["summary"])
+            st.write(ai["insights"])
+    
+            st.markdown("**Key Points**")
+            for p in ai["key_points"]:
+                st.markdown(f"- {p}")
+    
+            st.markdown("**Recommendations**")
+            for r in ai["recommendations"]:
+                st.markdown(f"- {r}")
+        else:
+            st.warning("AI insights could not be generated.")
+    
+    # Initial state message
+    if st.session_state.ai_result is None:
+        st.caption("AI has not been run yet. Click the button above when ready.")
 
-    if ai["success"]:
-        st.info(st.session_state.summary["summary"])
-        st.write(ai["insights"])
+    # ------------------ Safe AI extraction for reports ------------------
+    ai_text_for_report = "AI insights not generated."
 
-        st.markdown("**Key Points**")
-        for p in ai["key_points"]:
-            st.markdown(f"- {p}")
+    if st.session_state.ai_result and st.session_state.ai_result.get("success"):
+        ai_text_for_report = st.session_state.ai_result.get("insights", ai_text_for_report)
 
-        st.markdown("**Recommendations**")
-        for r in ai["recommendations"]:
-            st.markdown(f"- {r}")
-    else:
-        st.warning("AI unavailable (quota / billing limitation)")
+    
 
     # ------------------ Report ------------------
     st.divider()
-    st.markdown("### 📝 Business Report")
+    st.markdown("### Business Report")
 
     if st.button("📄 Generate Report"):
         st.session_state.business_report = generate_report(
@@ -205,19 +264,62 @@ if st.session_state.data_loaded:
                 "Margin": profit_margin(df)
             },
             risks=[r["message"] for r in risks if r["risk_detected"]],
-            ai_insights=ai["insights"] if ai["success"] else "AI unavailable"
+            ai_insights=ai_text_for_report
         )
 
     if st.session_state.business_report:
         st.text(st.session_state.business_report)
 
+
+    if st.button("⬇ Download Full PDF Report"):
+        chart_images = save_charts_to_images(df)
+        pdf_path = generate_pdf_report(
+            metrics={
+                "Revenue": total_revenue(df),
+                "Cost": total_cost(df),
+                "Profit": total_profit(df),
+                "Margin": f"{profit_margin(df):.2f}%"
+            },
+            risks=[r["message"] for r in risks if r["risk_detected"]],
+            ai_insights=ai_text_for_report,
+            chart_files=chart_images
+        )
+        with open(pdf_path, "rb") as f:
+            st.download_button(
+                label="📥 Download PDF",
+                data=f,
+                file_name="BizSight_Report.pdf",
+                mime="application/pdf"
+            )
+
+
+
     # ------------------ Charts ------------------
     st.divider()
-    st.markdown("### 📊 Visual Insights")
+    st.markdown("### Visual Insights")
 
-    st.pyplot(revenue_trend_chart(df))
-    st.pyplot(profit_by_product_chart(df))
-    st.pyplot(revenue_contribution_pie(df))
+    view_mode = st.radio(
+    "Chart View",
+    ["Overview", "Detailed"],
+    horizontal=True
+    )
+
+    if view_mode == "Overview":
+        st.plotly_chart(
+        revenue_contribution_pie(df),
+        use_container_width=True
+    )
+    else:
+        st.plotly_chart(
+        revenue_trend_chart(df),
+        use_container_width=True
+    )
+        st.plotly_chart(
+        profit_by_product_chart(df),
+        use_container_width=True
+    )
+
+
 
 # ------------------ Footer ------------------
 st.divider()
