@@ -81,18 +81,32 @@ def init_state():
 
 init_state()
 
-# ------------------ Header ------------------
-st.markdown(
-    """
-    <h1 style="text-align:center;">BizSight</h1>
-    <p style="text-align:center; color:gray;">
-    Business Decision Intelligence for Retail & FMCG
-    </p>
-    """,
-    unsafe_allow_html=True
-)
 
-st.divider()
+# ------------------ Header & Description ------------------
+# Use a centered column layout for a modern look
+col_main, col_mid, col_end = st.columns([1, 4, 1])
+
+with col_mid:
+    st.markdown(
+        """
+        <h1 style="text-align:center;">BizSight</h1>
+        <p style="text-align:center; color:gray; font-size:1.2rem;">
+        Decision Intelligence for Retail & FMCG
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    st.markdown("""
+    ###  Overview
+    **BizSight** transforms transactional data into strategic insights with real-time tracking, risk detection, and AI recommendations.
+    
+    ####  Data Requirements
+    Upload a CSV with these exact columns:
+    **`date`** | **`product_name`** | **`quantity`** | **`selling_price`** | **`revenue`** | **`cost`**
+    """)
+    st.divider()
+
 
 # ------------------ Upload ------------------
 uploaded_file = st.file_uploader(
