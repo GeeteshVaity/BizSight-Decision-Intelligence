@@ -6,4 +6,4 @@ reportlab
 kaleido==0.2.1
 plotly
 groq
-
+streamlit-lottie
