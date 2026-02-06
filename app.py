@@ -1,6 +1,9 @@
 # =========================
 # BizSight – Decision Intelligence
 # =========================
+from auth.auth import create_user_table, add_user, login_user
+create_user_table()
+
 from reports.pdf_report import generate_pdf_report
 import streamlit as st
 import pandas as pd
@@ -42,7 +45,10 @@ def init_state():
         "rev_change": 0,
         "cost_change": 0,
         "pdf_ready": False,
-        "pdf_bytes": None
+        "pdf_bytes": None,
+        "authenticated": False,
+        "username": None
+
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -108,17 +114,145 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# -- 
+if not st.session_state.authenticated:
+
+    # ---- Centered Layout ----
+    left, center, right = st.columns([1.5, 2, 1.5])
+
+    with center:
+            # ---- Auth Animation ----
+        st_lottie(
+            load_lottie("https://assets9.lottiefiles.com/packages/lf20_jcikwtux.json"),
+            height=140,
+            key="auth_animation"
+        )
+
+
+
+        st.markdown(
+            "<h2 style='text-align:center;'> BizSight Access</h2>",
+            unsafe_allow_html=True
+        )
+        st.caption("Secure decision intelligence for modern businesses")
+
+        tab_login, tab_signup = st.tabs(["Login", "Sign Up"])
+
+        # ================= LOGIN =================
+        with tab_login:
+            st.markdown("### Welcome back")
+
+            username = st.text_input(
+                "Username",
+                placeholder="e.g. analyst_01",
+                key="login_user"
+            )
+
+            password = st.text_input(
+                "Password",
+                type="password",
+                placeholder="••••••••",
+                key="login_pass"
+            )
+
+            remember = st.checkbox("Remember me")
+
+            if st.button("Login", use_container_width=True):
+                with st.spinner("Authenticating…"):
+                    time.sleep(0.6)
+                    user = login_user(username, password)
+
+                if user:
+                    st.session_state.authenticated = True
+                    st.session_state.username = username
+                    st.success("Login successful")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password")
+
+        # ================= SIGN UP =================
+        with tab_signup:
+            st.markdown("### Create a new account")
+
+            new_user = st.text_input(
+                "Choose a username",
+                placeholder="unique username"
+            )
+
+            new_pass = st.text_input(
+                "Choose a password",
+                type="password",
+                placeholder="min 6 characters"
+            )
+
+            st.caption("🔒 Passwords are securely encrypted")
+
+            if st.button("Create Account", use_container_width=True):
+                if len(new_pass) < 6:
+                    st.warning("Password should be at least 6 characters")
+                else:
+                    try:
+                        with st.spinner("Creating account…"):
+                            time.sleep(0.6)
+                            add_user(new_user, new_pass)
+
+                        st.success("Account created! Please login.")
+                    except:
+                        st.error("Username already exists")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
+
 # ------------------ Sidebar ------------------
 with st.sidebar:
-    st_lottie(load_lottie("https://assets9.lottiefiles.com/packages/lf20_qp1q7mct.json"), height=160)
-    st.title("BizSight")
-    app_mode = st.radio(
-        "Navigate",
-        ["Dashboard", "Simulation", "AI Intelligence", "Reports"],
-        label_visibility="collapsed"
+
+    st_lottie(
+        load_lottie("https://assets9.lottiefiles.com/packages/lf20_qp1q7mct.json"),
+        height=160
     )
-    st.divider()
+
+    st.title("BizSight")
+
+    # 🔐 USER INFO
+    if st.session_state.get("authenticated", False):
+        st.markdown(
+            f"""
+            <div style="
+                background: rgba(16,185,129,0.12);
+                padding: 12px;
+                border-radius: 12px;
+                border: 1px solid rgba(16,185,129,0.4);
+                margin-bottom: 10px;
+            ">
+                👤 <b>{st.session_state.username}</b><br>
+                <span style="font-size: 12px; opacity: 0.8;">
+                Decision Analyst
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        app_mode = st.radio(
+            "Navigate",
+            ["Dashboard", "Simulation", "AI Intelligence", "Reports"],
+            label_visibility="collapsed"
+        )
+
+        st.divider()
+
+        # 🚪 LOGOUT
+        if st.button("Logout"):
+            st.session_state.authenticated = False
+            st.session_state.username = None
+            st.session_state.data_loaded = False
+            st.rerun()
+
+    else:
+        st.info("🔒 Please login to access BizSight")
+
     st.caption("System Status: 🟢 Operational")
+
 
 # ------------------ Header ------------------
 c1, c2 = st.columns([4, 1])
