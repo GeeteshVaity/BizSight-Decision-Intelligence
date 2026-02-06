@@ -83,44 +83,85 @@ def load_lottie(url):
     r = requests.get(url)
     return r.json() if r.status_code == 200 else None
 
-# ------------------ Global Styling ------------------
 st.markdown("""
 <style>
-.stApp {
-    background: radial-gradient(circle at top, #020617, #020617);
-    color: #e5e7eb;
-}
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #020617, #020617);
-    border-right: 1px solid #1f2937;
-}
-.stButton>button {
-    background: linear-gradient(90deg, #10b981, #34d399);
-    color: black;
-    border-radius: 10px;
-    font-weight: 700;
-    transition: 0.3s;
-}
-.stButton>button:hover {
-    transform: scale(1.03);
-    box-shadow: 0 0 25px rgba(16,185,129,0.5);
-}
+
+/* ===== UNIVERSAL (BOTH THEMES) ===== */
+
 .metric-box {
-    background: rgba(255,255,255,0.04);
     padding: 20px;
-    border-radius: 15px;
-    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    transition: 0.25s ease;
 }
+
+.stButton>button {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: 0.25s ease;
+}
+
+/* ===== DARK MODE ===== */
+@media (prefers-color-scheme: dark) {
+
+    .metric-box {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .stButton>button {
+        background: linear-gradient(90deg, #10b981, #34d399);
+        color: #020617;
+    }
+
+    .stButton>button:hover {
+        box-shadow: 0 0 18px rgba(16,185,129,0.4);
+        transform: scale(1.03);
+    }
+}
+
+/* ===== LIGHT MODE ===== */
+@media (prefers-color-scheme: light) {
+
+    .metric-box {
+        background: rgba(255,255,255,0.9);
+        border: 1px solid #e5e7eb;
+    }
+
+    .stButton>button {
+        background: linear-gradient(90deg, #2563eb, #3b82f6);
+        color: white;
+    }
+
+    .stButton>button:hover {
+        box-shadow: 0 0 16px rgba(37,99,235,0.35);
+        transform: scale(1.03);
+    }
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-# -- 
+
+
+# ----------- Auth----------
 if not st.session_state.authenticated:
 
     # ---- Centered Layout ----
     left, center, right = st.columns([1.5, 2, 1.5])
 
     with center:
+        st.markdown("""
+        <div style="
+            padding: 40px;
+            border-radius: 22px;
+            backdrop-filter: blur(12px);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(0,0,0,0.1);
+        ">
+        """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
             # ---- Auth Animation ----
         st_lottie(
             load_lottie("https://assets9.lottiefiles.com/packages/lf20_jcikwtux.json"),
