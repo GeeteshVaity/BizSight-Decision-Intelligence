@@ -4,24 +4,25 @@ import tempfile
 import os
 from reports.pdf_report import generate_pdf_report
 
+from io import BytesIO
+
+
 
 def save_charts_to_images(df):
-    temp_dir = tempfile.mkdtemp()
-
     charts = {
         "revenue.png": revenue_trend_chart(df),
         "profit.png": profit_by_product_chart(df),
         "pie.png": revenue_contribution_pie(df)
     }
 
-    paths = []
+    images = {}
 
     for name, fig in charts.items():
-        path = os.path.join(temp_dir, name)
-        fig.write_image(path)
-        paths.append(path)
+        img_bytes = fig.to_image(format="png")
+        images[name] = img_bytes
 
-    return paths
+    return images
+
 
 
 # ------------------ Imports ------------------
@@ -73,7 +74,10 @@ def init_state():
         "simulation_result": None,
         "business_report": None,
         "rev_change": 0,
-        "cost_change": 0
+        "cost_change": 0,
+        "pdf_ready": False,
+        "pdf_bytes": None,
+
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -285,26 +289,47 @@ if st.session_state.data_loaded:
         st.text(st.session_state.business_report)
 
 
-    if st.button("⬇ Download Full PDF Report"):
-        chart_images = save_charts_to_images(df)
-        pdf_path = generate_pdf_report(
-            metrics={
-                "Revenue": total_revenue(df),
-                "Cost": total_cost(df),
-                "Profit": total_profit(df),
-                "Margin": f"{profit_margin(df):.2f}%"
-            },
-            risks=[r["message"] for r in risks if r["risk_detected"]],
-            ai_insights=ai_text_for_report,
-            chart_files=chart_images
-        )
-        with open(pdf_path, "rb") as f:
-            st.download_button(
-                label="📥 Download PDF",
-                data=f,
-                file_name="BizSight_Report.pdf",
-                mime="application/pdf"
+    if st.button("⬇ Generate Full PDF Report"):
+        progress = st.progress(0)
+        status = st.empty()
+
+        with st.spinner("Starting report generation..."):
+            status.info("Generating charts...")
+            progress.progress(30)
+
+            chart_images = save_charts_to_images(df)
+
+            status.info("Building PDF document...")
+            progress.progress(60)
+
+            st.session_state.pdf_bytes = generate_pdf_report(
+                metrics={
+                    "Revenue": total_revenue(df),
+                    "Cost": total_cost(df),
+                    "Profit": total_profit(df),
+                    "Margin": f"{profit_margin(df):.2f}%"
+                },
+                risks=[r["message"] for r in risks if r["risk_detected"]],
+                ai_insights=ai_text_for_report,
+                chart_files=chart_images
             )
+
+            progress.progress(100)
+            status.success("✅ Report ready!")
+
+            st.session_state.pdf_ready = True
+    
+    if st.session_state.pdf_ready:
+        st.download_button(
+            label="📥 Download PDF",
+            data=st.session_state.pdf_bytes,
+            file_name="BizSight_Report.pdf",
+            mime="application/pdf"
+        )
+
+
+
+
 
 
 

@@ -1,46 +1,41 @@
-from reportlab.lib.pagesizes import A4
+# reports/pdf_report.py
+
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet
-import tempfile
-import os
+from io import BytesIO
 
-def generate_pdf_report(
-    metrics: dict,
-    risks: list,
-    ai_insights: str,
-    chart_files: list
-):
-    temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    doc = SimpleDocTemplate(temp_pdf.name, pagesize=A4)
+def generate_pdf_report(metrics, risks, ai_insights, chart_files):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer)
     styles = getSampleStyleSheet()
     elements = []
 
-    elements.append(Paragraph("<b>BizSight – Business Intelligence Report</b>", styles["Title"]))
+    elements.append(Paragraph("BizSight Business Report", styles["Title"]))
     elements.append(Spacer(1, 12))
 
-    elements.append(Paragraph("<b>Key Metrics</b>", styles["Heading2"]))
     for k, v in metrics.items():
-        elements.append(Paragraph(f"{k}: {v}", styles["Normal"]))
+        elements.append(Paragraph(f"<b>{k}:</b> {v}", styles["Normal"]))
 
     elements.append(Spacer(1, 12))
-    elements.append(Paragraph("<b>Risk Analysis</b>", styles["Heading2"]))
-    if risks:
-        for r in risks:
-            elements.append(Paragraph(f"- {r}", styles["Normal"]))
-    else:
-        elements.append(Paragraph("No major risks detected.", styles["Normal"]))
+
+    elements.append(Paragraph("<b>Risks</b>", styles["Heading2"]))
+    for r in risks:
+        elements.append(Paragraph(f"- {r}", styles["Normal"]))
 
     elements.append(Spacer(1, 12))
+
     elements.append(Paragraph("<b>AI Insights</b>", styles["Heading2"]))
     elements.append(Paragraph(ai_insights, styles["Normal"]))
 
-    elements.append(Spacer(1, 12))
-    elements.append(Paragraph("<b>Visual Insights</b>", styles["Heading2"]))
+    elements.append(Spacer(1, 20))
 
-    for chart in chart_files:
-        if os.path.exists(chart):
-            elements.append(Spacer(1, 12))
-            elements.append(Image(chart, width=400, height=250))
+    # 🔥 Charts from BYTES (not files)
+    for name, img_bytes in chart_files.items():
+        img_stream = BytesIO(img_bytes)
+        elements.append(Image(img_stream, width=400, height=250))
+        elements.append(Spacer(1, 12))
 
     doc.build(elements)
-    return temp_pdf.name
+    buffer.seek(0)
+
+    return buffer.getvalue()
