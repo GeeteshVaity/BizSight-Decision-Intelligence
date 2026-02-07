@@ -11,6 +11,26 @@ import time
 import requests
 from streamlit_lottie import st_lottie
 
+def reset_app():
+    keys_to_reset = [
+        "data_loaded",
+        "df",
+        "ai_result",
+        "simulated_df",
+        "simulation_result",
+        "rev_change",
+        "cost_change",
+        "pdf_ready",
+        "pdf_bytes"
+    ]
+
+    for key in keys_to_reset:
+        if key in st.session_state:
+            st.session_state[key] = None if key != "data_loaded" else False
+
+    st.rerun()
+
+
 
 def save_charts_to_images(df):
     charts = {
@@ -331,6 +351,12 @@ if st.session_state.data_loaded:
     # ------------------ DASHBOARD ------------------
     if app_mode == "Dashboard":
         st.markdown("## 📊 Business Snapshot")
+
+        col1, col2 = st.columns([5, 1])
+        with col2:
+            if st.button("🔄 Reset Dataset", use_container_width=True):
+                reset_app()
+
 
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Revenue", f"₹ {total_revenue(df):,.0f}", "+12%")
